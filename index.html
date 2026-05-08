@@ -14,8 +14,7 @@
     <header class="topbar">
       <div class="brand-block">
         <div class="brand-mark">
-          <span class="brand-sun"></span>
-          <span class="brand-panel"></span>
+          <img src="assets/utp.webp" alt="Logo UTP">
         </div>
         <div class="brand-copy">
           <p>Simulador de</p>
@@ -42,22 +41,34 @@
         <section class="glass-card rail-card">
           <div class="rail-header">
             <h2>Electrodomesticos</h2>
-            <p>Equipos y consumo</p>
+            <p>Arrastra a la casa para usarlos</p>
           </div>
 
+          <div class="appliance-list" id="applianceList" aria-live="polite"></div>
+
           <form class="add-appliance-form" id="applianceForm">
-            <input id="applianceName" name="name" type="text" placeholder="Nombre del equipo" required>
+            <label class="field-label field-wide">
+              Equipo
+              <input id="applianceName" name="name" type="text" placeholder="Ej. Televisor" required>
+            </label>
             <div class="inline-form">
-              <input id="applianceWatts" name="watts" type="number" min="1" step="1" placeholder="Watts" required>
-              <input id="applianceQty" name="quantity" type="number" min="1" step="1" value="1" placeholder="Cant." required>
+              <label class="field-label">
+                Potencia (W)
+                <input id="applianceWatts" name="watts" type="number" min="1" step="1" placeholder="Watts" required>
+              </label>
+              <label class="field-label">
+                Cantidad
+                <input id="applianceQty" name="quantity" type="number" min="1" step="1" value="1" placeholder="Cant." required>
+              </label>
             </div>
             <div class="inline-form">
-              <input id="applianceHours" name="hours" type="number" min="0" step="0.5" value="4" placeholder="Horas" required>
+              <label class="field-label">
+                Horas de uso
+                <input id="applianceHours" name="hours" type="number" min="0" step="0.5" value="4" placeholder="Horas" required>
+              </label>
               <button class="action-btn green" type="submit">Agregar</button>
             </div>
           </form>
-
-          <div class="appliance-list" id="applianceList" aria-live="polite"></div>
         </section>
 
         <section class="glass-card rail-card batteries-card">
@@ -66,31 +77,18 @@
             <p>Almacena energia para la noche</p>
           </div>
 
-          <div class="battery-visual-list">
-            <article class="battery-line">
-              <div class="battery-pack-icon"></div>
-              <div>
-                <strong id="batteryCountValue">4 baterias</strong>
-                <p>Capacidad total disponible</p>
-              </div>
-            </article>
-          </div>
+          <div class="battery-list" id="batteryList" aria-live="polite"></div>
 
           <div class="battery-controls">
-            <label>
-              Cantidad de baterias
-              <input id="batteryCount" type="range" min="0" max="16" step="1" value="4">
-            </label>
-            <label>
-              Capacidad de una bateria (Wh)
-              <input id="batteryCapacity" type="number" min="0" step="50" value="2400">
-            </label>
+            <input id="batteryCount" class="sr-only" type="range" min="0" max="16" step="1" value="4">
+            <input id="batteryCapacity" class="sr-only" type="number" min="0" step="50" value="2400">
+            <span id="batteryCountValue" class="sr-only">4 baterias</span>
             <small id="batteryCapacityLabel">2400 Wh c/u</small>
             <div class="capacity-row">
               <span>Capacidad total:</span>
               <strong id="totalStorage">0 Wh</strong>
             </div>
-            <button class="action-btn outline" type="button">Agregar bateria</button>
+            <button class="action-btn outline" id="addBatteryBtn" type="button">Agregar bateria</button>
           </div>
         </section>
       </aside>
@@ -116,19 +114,23 @@
               </div>
               <input id="panelCount" type="range" min="0" max="20" step="1" value="6">
             </label>
-            <label>
+            <div class="panel-generation-total">
+              <span>Energia generada</span>
+              <strong id="panelGeneratedLabel">0 Wh</strong>
+            </div>
+            <label class="panel-advanced-control">
               Eficiencia del sistema
               <input id="systemLoss" type="range" min="0" max="40" step="1" value="12">
             </label>
-            <div class="efficiency-row">
+            <div class="efficiency-row panel-advanced-control">
               <span id="lossValue">12 % de perdidas</span>
               <strong id="systemHealthLabel">Estado estable</strong>
             </div>
-            <label>
+            <label class="panel-advanced-control">
               1 panel produce (W)
               <input id="panelOutput" type="number" min="0" step="10" value="450">
             </label>
-            <div class="panel-note">
+            <div class="panel-note panel-advanced-control">
               <strong id="panelPowerLabel">450 W c/u</strong>
               <span>en condiciones optimas</span>
             </div>
@@ -141,8 +143,10 @@
           <div class="energy-flow flow-two"></div>
           <div class="energy-flow flow-three"></div>
 
+          <img class="sky-orb sky-orb-day active" id="dayOrb" src="assets/sol.png" alt="Sol">
+          <img class="sky-orb sky-orb-night" id="nightOrb" src="assets/luna.png" alt="Luna">
           <div class="solar-badge">☀</div>
-          <img class="house-image" src="assets/solar-house.png" alt="Casa con paneles solares">
+          <img class="house-image" id="sceneImage" src="assets/dia.png" alt="Casa con paneles solares">
           <div class="battery-badge">
             <span></span>
           </div>
@@ -162,7 +166,7 @@
         </div>
 
         <div class="footer-strip glass-card">
-          <span>Cada decision cuenta: Simula, aprende y ahorra energia.</span>
+          <span>Ajusta las horas para recalcular consumo, generacion y respaldo.</span>
           <div class="footer-controls">
             <label>
               Horas de dia
@@ -244,17 +248,6 @@
         </section>
 
         <section class="glass-card summary-card compact">
-          <h3>Flujo de energia</h3>
-          <div class="flow-mini">
-            <div class="flow-mini-item">Paneles</div>
-            <div class="flow-mini-arrow">→</div>
-            <div class="flow-mini-item">Casa</div>
-            <div class="flow-mini-arrow">→</div>
-            <div class="flow-mini-item">Baterias</div>
-          </div>
-        </section>
-
-        <section class="glass-card summary-card compact">
           <h3>Consejos</h3>
           <div class="tips-list" id="tipsList"></div>
         </section>
@@ -290,7 +283,9 @@
 
   <template id="applianceTemplate">
     <article class="appliance-item" draggable="true">
-      <div class="appliance-icon"></div>
+      <div class="appliance-icon" aria-hidden="true">
+        <span class="appliance-icon-glyph"></span>
+      </div>
       <div class="appliance-main">
         <strong class="appliance-title"></strong>
         <span class="appliance-meta"></span>

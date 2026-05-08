@@ -2,6 +2,7 @@ const initialAppliances = [
   { id: crypto.randomUUID(), name: "TV", watts: 100, quantity: 1, hours: 5, enabled: true },
   { id: crypto.randomUUID(), name: "Computadora", watts: 400, quantity: 2, hours: 6, enabled: true },
   { id: crypto.randomUUID(), name: "Refrigeradora", watts: 300, quantity: 1, hours: 12, enabled: true },
+  { id: crypto.randomUUID(), name: "Focos", watts: 10, quantity: 10, hours: 5, enabled: true },
   { id: crypto.randomUUID(), name: "Plancha", watts: 1200, quantity: 1, hours: 1, enabled: false },
   { id: crypto.randomUUID(), name: "Cocina electrica", watts: 1500, quantity: 1, hours: 2, enabled: false }
 ];
@@ -10,8 +11,7 @@ const state = {
   period: "day",
   panelCount: 6,
   panelOutput: 450,
-  batteryCount: 4,
-  batteryCapacity: 2400,
+  batteryCapacities: [2400, 2400, 2400, 2400],
   dayHours: 8,
   nightHours: 12,
   systemLoss: 12,
@@ -19,21 +19,28 @@ const state = {
 };
 
 const applianceList = document.querySelector("#applianceList");
+const batteryList = document.querySelector("#batteryList");
 const applianceTemplate = document.querySelector("#applianceTemplate");
 const applianceForm = document.querySelector("#applianceForm");
 const periodButtons = document.querySelectorAll(".period-btn");
 const sceneBubble = document.querySelector("#sceneBubble");
 const body = document.body;
+let renderedPeriod = null;
 
 const refs = {
+  sceneImage: document.querySelector("#sceneImage"),
+  dayOrb: document.querySelector("#dayOrb"),
+  nightOrb: document.querySelector("#nightOrb"),
   panelCount: document.querySelector("#panelCount"),
   panelOutput: document.querySelector("#panelOutput"),
   batteryCount: document.querySelector("#batteryCount"),
   batteryCapacity: document.querySelector("#batteryCapacity"),
+  addBatteryBtn: document.querySelector("#addBatteryBtn"),
   dayHours: document.querySelector("#dayHours"),
   nightHours: document.querySelector("#nightHours"),
   systemLoss: document.querySelector("#systemLoss"),
   panelCountValue: document.querySelector("#panelCountValue"),
+  panelGeneratedLabel: document.querySelector("#panelGeneratedLabel"),
   panelPowerLabel: document.querySelector("#panelPowerLabel"),
   batteryCountValue: document.querySelector("#batteryCountValue"),
   batteryCapacityLabel: document.querySelector("#batteryCapacityLabel"),
@@ -84,6 +91,85 @@ function pluralize(value, singular, plural) {
   return `${value} ${value === 1 ? singular : plural}`;
 }
 
+function getBatteryCount() {
+  return state.batteryCapacities.length;
+}
+
+function getDefaultBatteryCapacity() {
+  const lastCapacity = state.batteryCapacities.at(-1);
+
+  if (lastCapacity !== undefined) {
+    return lastCapacity;
+  }
+
+  return Number(refs.batteryCapacity.value) || 2400;
+}
+
+function getAverageBatteryCapacity() {
+  if (state.batteryCapacities.length === 0) {
+    return getDefaultBatteryCapacity();
+  }
+
+  const total = state.batteryCapacities.reduce((sum, capacity) => sum + capacity, 0);
+  return total / state.batteryCapacities.length;
+}
+
+function getApplianceIconClass(name) {
+  const normalized = name.toLowerCase();
+
+  if (normalized.includes("tv") || normalized.includes("tele")) {
+    return "appliance-icon-tv";
+  }
+
+  if (normalized.includes("compu") || normalized.includes("pc") || normalized.includes("laptop")) {
+    return "appliance-icon-computer";
+  }
+
+  if (normalized.includes("refri") || normalized.includes("nevera")) {
+    return "appliance-icon-fridge";
+  }
+
+  if (normalized.includes("plancha")) {
+    return "appliance-icon-iron";
+  }
+
+  if (normalized.includes("foco") || normalized.includes("luz") || normalized.includes("bombilla")) {
+    return "appliance-icon-bulb";
+  }
+
+  if (normalized.includes("cocina") || normalized.includes("horno")) {
+    return "appliance-icon-stove";
+  }
+
+  return "appliance-icon-default";
+}
+
+function shortenApplianceName(name) {
+  const normalized = name.toLowerCase();
+
+  if (normalized.includes("tele")) {
+    return "Televisor";
+  }
+
+  if (normalized.includes("compu")) {
+    return "Computadora";
+  }
+
+  if (normalized.includes("refri")) {
+    return "Refrigeradora";
+  }
+
+  if (normalized.includes("cocina")) {
+    return "Cocina";
+  }
+
+  if (normalized.includes("foco")) {
+    return "Focos";
+  }
+
+  return name.length > 15 ? `${name.slice(0, 14)}.` : name;
+}
+
 function getActiveAppliances() {
   return state.appliances.filter((item) => item.enabled);
 }
@@ -111,7 +197,7 @@ function calculateOverview() {
   const nightLoad = calculateLoadForPeriod("night");
   const solarRawDay = state.panelCount * state.panelOutput * state.dayHours;
   const solarNetDay = solarRawDay * lossFactor;
-  const storageCapacity = state.batteryCount * state.batteryCapacity;
+  const storageCapacity = state.batteryCapacities.reduce((sum, capacity) => sum + capacity, 0);
   const storableSurplus = Math.min(storageCapacity, Math.max(solarNetDay - dayLoad.consumption, 0));
   const wastedDay = Math.max(solarNetDay - dayLoad.consumption - storableSurplus, 0);
   const daySupplied = Math.min(dayLoad.consumption, solarNetDay);
@@ -121,8 +207,9 @@ function calculateOverview() {
   const recommendedPanels = state.panelOutput > 0 && state.dayHours > 0 && lossFactor > 0
     ? Math.ceil(dayLoad.consumption / (state.panelOutput * state.dayHours * lossFactor))
     : 0;
-  const recommendedBatteries = state.batteryCapacity > 0
-    ? Math.ceil(nightLoad.consumption / state.batteryCapacity)
+  const averageBatteryCapacity = getAverageBatteryCapacity();
+  const recommendedBatteries = averageBatteryCapacity > 0
+    ? Math.ceil(nightLoad.consumption / averageBatteryCapacity)
     : 0;
   const autonomyHours = nightLoad.activeLoad > 0 ? storageCapacity / nightLoad.activeLoad : 0;
 
@@ -194,7 +281,7 @@ function getStatusMessages(overview, currentScenario) {
       tips.push("Mas baterias o mas consumo util en horas solares pueden aprovechar mejor ese excedente.");
     }
   } else {
-    if (state.batteryCount === 0) {
+    if (getBatteryCount() === 0) {
       messages.push("Durante la noche la casa queda sin respaldo porque no hay baterias.");
       tips.push(`Para la carga nocturna actual, se recomiendan ${pluralize(overview.recommendedBatteries, "bateria", "baterias")}.`);
     }
@@ -240,8 +327,12 @@ function renderAppliances() {
 
   state.appliances.forEach((item) => {
     const node = applianceTemplate.content.firstElementChild.cloneNode(true);
+    const icon = node.querySelector(".appliance-icon");
+
     node.dataset.id = item.id;
-    node.querySelector(".appliance-title").textContent = item.name;
+    icon.classList.add(getApplianceIconClass(item.name));
+    node.querySelector(".appliance-title").textContent = shortenApplianceName(item.name);
+    node.querySelector(".appliance-title").title = item.name;
     node.querySelector(".appliance-meta").textContent = `${item.quantity} x ${item.watts} W - ${item.hours} h`;
 
     const enabledInput = node.querySelector(".appliance-enabled");
@@ -286,11 +377,48 @@ function renderAppliances() {
   });
 }
 
+function renderBatteries() {
+  batteryList.innerHTML = "";
+
+  state.batteryCapacities.forEach((capacity, index) => {
+    const row = document.createElement("article");
+    row.className = "battery-line";
+    row.innerHTML = `
+      <div class="battery-pack-icon" aria-hidden="true"></div>
+      <div class="battery-main">
+        <strong>Bateria ${index + 1}</strong>
+        <span>${capacity} Wh</span>
+      </div>
+      <input class="battery-capacity-input" type="number" min="0" step="50" value="${capacity}" aria-label="Capacidad bateria ${index + 1}">
+      <button class="remove-battery" type="button" aria-label="Eliminar bateria ${index + 1}">x</button>
+    `;
+
+    const capacityInput = row.querySelector(".battery-capacity-input");
+    const removeButton = row.querySelector(".remove-battery");
+
+    capacityInput.addEventListener("change", () => {
+      state.batteryCapacities[index] = Math.max(0, Number(capacityInput.value) || 0);
+      update();
+    });
+
+    removeButton.addEventListener("click", () => {
+      state.batteryCapacities.splice(index, 1);
+      refs.batteryCount.value = String(getBatteryCount());
+      update();
+    });
+
+    batteryList.appendChild(row);
+  });
+}
+
 function updateReadouts(overview, currentScenario) {
   refs.panelCountValue.textContent = pluralize(state.panelCount, "panel", "paneles");
+  refs.panelGeneratedLabel.textContent = formatEnergy(overview.solarNetDay);
   refs.panelPowerLabel.textContent = `${state.panelOutput} W c/u`;
-  refs.batteryCountValue.textContent = pluralize(state.batteryCount, "bateria", "baterias");
-  refs.batteryCapacityLabel.textContent = `${state.batteryCapacity} Wh c/u`;
+  refs.batteryCountValue.textContent = pluralize(getBatteryCount(), "bateria", "baterias");
+  refs.batteryCapacityLabel.textContent = getBatteryCount() === 0
+    ? "Sin baterias"
+    : "Capacidad editable por bateria";
   refs.lossValue.textContent = `${state.systemLoss} % de perdidas`;
   refs.systemHealthLabel.textContent = state.systemLoss <= 10
     ? "Estado optimo"
@@ -361,8 +489,41 @@ function updateNarrative(overview, currentScenario) {
   }
 }
 
+function animateSkyOrb(nextPeriod) {
+  const enteringOrb = nextPeriod === "day" ? refs.dayOrb : refs.nightOrb;
+  const leavingOrb = nextPeriod === "day" ? refs.nightOrb : refs.dayOrb;
+
+  if (renderedPeriod === null) {
+    refs.dayOrb.classList.toggle("active", nextPeriod === "day");
+    refs.nightOrb.classList.toggle("active", nextPeriod === "night");
+    renderedPeriod = nextPeriod;
+    return;
+  }
+
+  if (renderedPeriod === nextPeriod) {
+    return;
+  }
+
+  leavingOrb.classList.remove("active");
+  leavingOrb.classList.add("leaving");
+  enteringOrb.classList.remove("active", "leaving");
+  void enteringOrb.offsetWidth;
+  enteringOrb.classList.add("active");
+
+  window.setTimeout(() => {
+    leavingOrb.classList.remove("leaving");
+  }, 430);
+
+  renderedPeriod = nextPeriod;
+}
+
 function updateTheme() {
   body.dataset.theme = state.period === "day" ? "day" : "night";
+  refs.sceneImage.src = state.period === "day" ? "assets/dia.png" : "assets/noche.png";
+  refs.sceneImage.alt = state.period === "day"
+    ? "Casa solar durante el dia"
+    : "Casa solar durante la noche";
+  animateSkyOrb(state.period);
   periodButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.period === state.period);
   });
@@ -370,6 +531,7 @@ function updateTheme() {
 
 function update() {
   renderAppliances();
+  renderBatteries();
   updateTheme();
   const overview = calculateOverview();
   const currentScenario = calculateCurrentScenario(overview);
@@ -380,8 +542,6 @@ function update() {
 function syncStateFromInputs() {
   state.panelCount = Number(refs.panelCount.value);
   state.panelOutput = Number(refs.panelOutput.value);
-  state.batteryCount = Number(refs.batteryCount.value);
-  state.batteryCapacity = Number(refs.batteryCapacity.value);
   state.dayHours = Number(refs.dayHours.value);
   state.nightHours = Number(refs.nightHours.value);
   state.systemLoss = Number(refs.systemLoss.value);
@@ -390,8 +550,6 @@ function syncStateFromInputs() {
 [
   refs.panelCount,
   refs.panelOutput,
-  refs.batteryCount,
-  refs.batteryCapacity,
   refs.dayHours,
   refs.nightHours,
   refs.systemLoss
@@ -458,12 +616,23 @@ if (increasePanelsBtn && decreasePanelsBtn) {
   });
 }
 
+if (refs.addBatteryBtn) {
+  refs.addBatteryBtn.addEventListener("click", () => {
+    if (getBatteryCount() >= 16) {
+      return;
+    }
+
+    state.batteryCapacities.push(getDefaultBatteryCapacity());
+    refs.batteryCount.value = String(getBatteryCount());
+    update();
+  });
+}
+
 refs.resetScene.addEventListener("click", () => {
   state.period = "day";
   state.panelCount = 6;
   state.panelOutput = 450;
-  state.batteryCount = 4;
-  state.batteryCapacity = 2400;
+  state.batteryCapacities = [2400, 2400, 2400, 2400];
   state.dayHours = 8;
   state.nightHours = 12;
   state.systemLoss = 12;
@@ -471,8 +640,8 @@ refs.resetScene.addEventListener("click", () => {
 
   refs.panelCount.value = String(state.panelCount);
   refs.panelOutput.value = String(state.panelOutput);
-  refs.batteryCount.value = String(state.batteryCount);
-  refs.batteryCapacity.value = String(state.batteryCapacity);
+  refs.batteryCount.value = String(getBatteryCount());
+  refs.batteryCapacity.value = String(getDefaultBatteryCapacity());
   refs.dayHours.value = String(state.dayHours);
   refs.nightHours.value = String(state.nightHours);
   refs.systemLoss.value = String(state.systemLoss);
@@ -513,6 +682,49 @@ function makeDraggable(element) {
 }
 
 document.querySelectorAll(".draggable").forEach(makeDraggable);
+
+function enableSmoothWheelScroll(element) {
+  let targetScroll = element.scrollTop;
+  let animationFrame = null;
+  const wheelBoost = 1.18;
+  const easing = 0.58;
+
+  const animate = () => {
+    const distance = targetScroll - element.scrollTop;
+
+    if (Math.abs(distance) < 1.6) {
+      element.scrollTop = targetScroll;
+      animationFrame = null;
+      return;
+    }
+
+    element.scrollTop += distance * easing;
+    animationFrame = requestAnimationFrame(animate);
+  };
+
+  element.addEventListener("wheel", (event) => {
+    const canScroll = element.scrollHeight > element.clientHeight;
+
+    if (!canScroll) {
+      return;
+    }
+
+    event.preventDefault();
+    targetScroll = clamp(targetScroll + event.deltaY * wheelBoost, 0, element.scrollHeight - element.clientHeight);
+
+    if (!animationFrame) {
+      animationFrame = requestAnimationFrame(animate);
+    }
+  }, { passive: false });
+
+  element.addEventListener("scroll", () => {
+    if (!animationFrame) {
+      targetScroll = element.scrollTop;
+    }
+  }, { passive: true });
+}
+
+document.querySelectorAll(".left-rail, .right-rail, .appliance-list, .battery-list").forEach(enableSmoothWheelScroll);
 
 syncStateFromInputs();
 update();
