@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de consumo energetico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="day">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark">
+          <span class="brand-sun"></span>
+          <span class="brand-panel"></span>
+        </div>
+        <div class="brand-copy">
+          <p>Simulador de</p>
+          <h1>consumo energetico</h1>
+          <small>Energia solar para un futuro sostenible</small>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="period-switch" role="tablist" aria-label="Modo del simulador">
+          <button class="period-btn active" type="button" data-period="day">Dia</button>
+          <button class="period-btn" type="button" data-period="night">Noche</button>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="topbar-btn" type="button">Como usar</button>
+        <button class="topbar-btn" id="resetScene" type="button">Reiniciar</button>
+      </div>
+    </header>
+
+    <main class="experience-grid">
+      <aside class="left-rail">
+        <section class="glass-card rail-card">
+          <div class="rail-header">
+            <h2>Electrodomesticos</h2>
+            <p>Equipos y consumo</p>
+          </div>
+
+          <form class="add-appliance-form" id="applianceForm">
+            <input id="applianceName" name="name" type="text" placeholder="Nombre del equipo" required>
+            <div class="inline-form">
+              <input id="applianceWatts" name="watts" type="number" min="1" step="1" placeholder="Watts" required>
+              <input id="applianceQty" name="quantity" type="number" min="1" step="1" value="1" placeholder="Cant." required>
+            </div>
+            <div class="inline-form">
+              <input id="applianceHours" name="hours" type="number" min="0" step="0.5" value="4" placeholder="Horas" required>
+              <button class="action-btn green" type="submit">Agregar</button>
+            </div>
+          </form>
+
+          <div class="appliance-list" id="applianceList" aria-live="polite"></div>
+        </section>
+
+        <section class="glass-card rail-card batteries-card">
+          <div class="rail-header">
+            <h2>Baterias</h2>
+            <p>Almacena energia para la noche</p>
+          </div>
+
+          <div class="battery-visual-list">
+            <article class="battery-line">
+              <div class="battery-pack-icon"></div>
+              <div>
+                <strong id="batteryCountValue">4 baterias</strong>
+                <p>Capacidad total disponible</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="battery-controls">
+            <label>
+              Cantidad de baterias
+              <input id="batteryCount" type="range" min="0" max="16" step="1" value="4">
+            </label>
+            <label>
+              Capacidad de una bateria (Wh)
+              <input id="batteryCapacity" type="number" min="0" step="50" value="2400">
+            </label>
+            <small id="batteryCapacityLabel">2400 Wh c/u</small>
+            <div class="capacity-row">
+              <span>Capacidad total:</span>
+              <strong id="totalStorage">0 Wh</strong>
+            </div>
+            <button class="action-btn outline" type="button">Agregar bateria</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="center-stage">
+        <div class="stage-card">
+          <div class="scene-backdrop"></div>
+          <div class="cloud cloud-a"></div>
+          <div class="cloud cloud-b"></div>
+          <div class="moon"></div>
+          <div class="sun-glow"></div>
+
+          <section class="floating-controls glass-card">
+            <div class="panel-title-row">
+              <h2>Paneles solares</h2>
+            </div>
+            <label>
+              Cantidad de paneles
+              <div class="stepper-row">
+                <button class="stepper-btn" type="button" id="decreasePanels">-</button>
+                <span id="panelCountValue">6 paneles</span>
+                <button class="stepper-btn" type="button" id="increasePanels">+</button>
+              </div>
+              <input id="panelCount" type="range" min="0" max="20" step="1" value="6">
+            </label>
+            <label>
+              Eficiencia del sistema
+              <input id="systemLoss" type="range" min="0" max="40" step="1" value="12">
+            </label>
+            <div class="efficiency-row">
+              <span id="lossValue">12 % de perdidas</span>
+              <strong id="systemHealthLabel">Estado estable</strong>
+            </div>
+            <label>
+              1 panel produce (W)
+              <input id="panelOutput" type="number" min="0" step="10" value="450">
+            </label>
+            <div class="panel-note">
+              <strong id="panelPowerLabel">450 W c/u</strong>
+              <span>en condiciones optimas</span>
+            </div>
+          </section>
+
+          <div class="energy-node solar-node"></div>
+          <div class="energy-node house-node"></div>
+          <div class="energy-node battery-node"></div>
+          <div class="energy-flow flow-one"></div>
+          <div class="energy-flow flow-two"></div>
+          <div class="energy-flow flow-three"></div>
+
+          <div class="solar-badge">☀</div>
+          <img class="house-image" src="assets/solar-house.png" alt="Casa con paneles solares">
+          <div class="battery-badge">
+            <span></span>
+          </div>
+
+          <div class="status-bubble" id="sceneBubble">Escenario listo para simular.</div>
+        </div>
+
+        <div class="bottom-story">
+          <article class="story-card day-card">
+            <h3>Dia</h3>
+            <p>Los paneles solares generan energia para alimentar la casa y cargar las baterias.</p>
+          </article>
+          <article class="story-card night-card">
+            <h3>Noche</h3>
+            <p>La energia almacenada en las baterias alimenta la casa cuando no hay generacion solar.</p>
+          </article>
+        </div>
+
+        <div class="footer-strip glass-card">
+          <span>Cada decision cuenta: Simula, aprende y ahorra energia.</span>
+          <div class="footer-controls">
+            <label>
+              Horas de dia
+              <input id="dayHours" type="number" min="1" max="24" step="1" value="8">
+            </label>
+            <label>
+              Horas de noche
+              <input id="nightHours" type="number" min="1" max="24" step="1" value="12">
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right-rail">
+        <section class="glass-card summary-card">
+          <div class="summary-header">
+            <h2>Resumen en tiempo real</h2>
+          </div>
+
+          <div class="summary-grid" id="summaryGrid">
+            <article class="metric-card">
+              <span>Consumo actual</span>
+              <strong id="totalConsumption">0 Wh</strong>
+              <small>Potencia total usada</small>
+            </article>
+            <article class="metric-card">
+              <span>Generacion solar</span>
+              <strong id="totalGeneration">0 Wh</strong>
+              <small>Produccion actual</small>
+            </article>
+            <article class="metric-card">
+              <span>Energia almacenada</span>
+              <strong id="batteryReserveText">0 %</strong>
+              <small>Baterias disponibles</small>
+            </article>
+            <article class="metric-card">
+              <span>Energia desperdiciada</span>
+              <strong id="wastedEnergy">0 Wh</strong>
+              <small>No utilizada</small>
+            </article>
+            <article class="metric-card">
+              <span>Cobertura nocturna</span>
+              <strong id="nightAutonomy">0 h</strong>
+              <small>Con la energia almacenada</small>
+            </article>
+            <article class="metric-card alert">
+              <span>Deficit sin baterias</span>
+              <strong id="withoutBatteries">0 Wh</strong>
+              <small>Durante la noche</small>
+            </article>
+          </div>
+
+          <div class="alert-banner">
+            <strong id="statusHeadline">Configura el sistema para ver el resultado.</strong>
+            <p id="headlineSupport">Durante la noche la casa queda sin respaldo.</p>
+          </div>
+        </section>
+
+        <section class="glass-card summary-card compact">
+          <h3>Dimensionamiento sugerido</h3>
+          <div class="planner-grid">
+            <article class="planner-metric">
+              <span>Paneles sugeridos</span>
+              <strong id="recommendedPanels">0</strong>
+            </article>
+            <article class="planner-metric">
+              <span>Baterias sugeridas</span>
+              <strong id="recommendedBatteries">0</strong>
+            </article>
+            <article class="planner-metric">
+              <span>Carga solar util</span>
+              <strong id="chargeableEnergy">0 Wh</strong>
+            </article>
+            <article class="planner-metric">
+              <span>Cobertura actual</span>
+              <strong id="coverageText">0 %</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="glass-card summary-card compact">
+          <h3>Flujo de energia</h3>
+          <div class="flow-mini">
+            <div class="flow-mini-item">Paneles</div>
+            <div class="flow-mini-arrow">→</div>
+            <div class="flow-mini-item">Casa</div>
+            <div class="flow-mini-arrow">→</div>
+            <div class="flow-mini-item">Baterias</div>
+          </div>
+        </section>
+
+        <section class="glass-card summary-card compact">
+          <h3>Consejos</h3>
+          <div class="tips-list" id="tipsList"></div>
+        </section>
+
+        <section class="glass-card summary-card compact hidden-analytics">
+          <div class="progress-pair">
+            <div>
+              <span>Carga de baterias utilizable</span>
+              <div class="progress-bar battery-progress">
+                <div class="progress-fill" id="batteryReserveBar"></div>
+              </div>
+            </div>
+            <div>
+              <span>Cobertura del periodo actual</span>
+              <div class="progress-bar">
+                <div class="progress-fill" id="coverageBar"></div>
+              </div>
+            </div>
+          </div>
+          <ul id="statusList" class="status-list"></ul>
+          <div class="compare-hidden">
+            <span id="dayCoverage"></span>
+            <span id="nightCoverage"></span>
+            <span id="dayBalance"></span>
+            <span id="nightBalance"></span>
+            <span id="withoutPanels"></span>
+            <span id="plannerBadge"></span>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <template id="applianceTemplate">
+    <article class="appliance-item" draggable="true">
+      <div class="appliance-icon"></div>
+      <div class="appliance-main">
+        <strong class="appliance-title"></strong>
+        <span class="appliance-meta"></span>
+      </div>
+      <div class="appliance-inline-editor">
+        <label>
+          <input class="appliance-watts-input" type="number" min="1" step="1">
+          <span>W</span>
+        </label>
+      </div>
+      <div class="appliance-actions">
+        <label class="appliance-toggle">On <input class="appliance-enabled" type="checkbox" checked></label>
+        <button class="icon-btn remove-appliance" type="button" aria-label="Eliminar item">Quitar</button>
+      </div>
+      <div class="appliance-hidden-inputs">
+        <input class="appliance-qty-input" type="number" min="1" step="1">
+        <input class="appliance-hours-input" type="number" min="0" step="0.5">
+      </div>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
