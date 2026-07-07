@@ -1,17 +1,10 @@
-const initialAppliances = [
-  { id: crypto.randomUUID(), name: "TV", watts: 100, quantity: 1, hours: 5, enabled: true },
-  { id: crypto.randomUUID(), name: "Computadora", watts: 400, quantity: 2, hours: 6, enabled: true },
-  { id: crypto.randomUUID(), name: "Refrigeradora", watts: 300, quantity: 1, hours: 12, enabled: true },
-  { id: crypto.randomUUID(), name: "Focos", watts: 10, quantity: 10, hours: 5, enabled: true },
-  { id: crypto.randomUUID(), name: "Plancha", watts: 1200, quantity: 1, hours: 1, enabled: false },
-  { id: crypto.randomUUID(), name: "Cocina electrica", watts: 1500, quantity: 1, hours: 2, enabled: false }
-];
+const initialAppliances = [];
 
 const state = {
   period: "day",
   panelCount: 6,
   panelOutput: 450,
-  batteryCapacities: [2400, 2400, 2400, 2400],
+  batteryCapacities: [],
   dayHours: 8,
   nightHours: 12,
   systemLoss: 12,
@@ -325,6 +318,14 @@ function getStatusMessages(overview, currentScenario) {
 function renderAppliances() {
   applianceList.innerHTML = "";
 
+  if (state.appliances.length === 0) {
+    const emptyState = document.createElement("div");
+    emptyState.className = "empty-appliance-state";
+    emptyState.textContent = "Agrega un electrodomestico para iniciar el calculo.";
+    applianceList.appendChild(emptyState);
+    return;
+  }
+
   state.appliances.forEach((item) => {
     const node = applianceTemplate.content.firstElementChild.cloneNode(true);
     const icon = node.querySelector(".appliance-icon");
@@ -335,25 +336,11 @@ function renderAppliances() {
     node.querySelector(".appliance-title").title = item.name;
     node.querySelector(".appliance-meta").textContent = `${item.quantity} x ${item.watts} W - ${item.hours} h`;
 
-    const enabledInput = node.querySelector(".appliance-enabled");
-    const wattsInput = node.querySelector(".appliance-watts-input");
     const qtyInput = node.querySelector(".appliance-qty-input");
     const hoursInput = node.querySelector(".appliance-hours-input");
 
-    enabledInput.checked = item.enabled;
-    wattsInput.value = String(item.watts);
     qtyInput.value = String(item.quantity);
     hoursInput.value = String(item.hours);
-
-    enabledInput.addEventListener("change", () => {
-      item.enabled = enabledInput.checked;
-      update();
-    });
-
-    wattsInput.addEventListener("input", () => {
-      item.watts = Math.max(1, Number(wattsInput.value) || 1);
-      update();
-    });
 
     qtyInput.addEventListener("input", () => {
       item.quantity = Math.max(1, Number(qtyInput.value) || 1);
@@ -390,7 +377,7 @@ function renderBatteries() {
         <span>${capacity} Wh</span>
       </div>
       <input class="battery-capacity-input" type="number" min="0" step="50" value="${capacity}" aria-label="Capacidad bateria ${index + 1}">
-      <button class="remove-battery" type="button" aria-label="Eliminar bateria ${index + 1}">x</button>
+      <button class="remove-battery" type="button" aria-label="Eliminar bateria ${index + 1}"></button>
     `;
 
     const capacityInput = row.querySelector(".battery-capacity-input");
@@ -420,11 +407,9 @@ function updateReadouts(overview, currentScenario) {
     ? "Sin baterias"
     : "Capacidad editable por bateria";
   refs.lossValue.textContent = `${state.systemLoss} % de perdidas`;
-  refs.systemHealthLabel.textContent = state.systemLoss <= 10
-    ? "Estado optimo"
-    : state.systemLoss <= 20
-      ? "Estado estable"
-      : "Estado con perdidas";
+  if (refs.systemHealthLabel) {
+    refs.systemHealthLabel.textContent = "";
+  }
 
   refs.totalConsumption.textContent = formatEnergy(currentScenario.consumption);
   refs.totalGeneration.textContent = formatEnergy(currentScenario.generation);
@@ -632,11 +617,11 @@ refs.resetScene.addEventListener("click", () => {
   state.period = "day";
   state.panelCount = 6;
   state.panelOutput = 450;
-  state.batteryCapacities = [2400, 2400, 2400, 2400];
+  state.batteryCapacities = [];
   state.dayHours = 8;
   state.nightHours = 12;
   state.systemLoss = 12;
-  state.appliances = structuredClone(initialAppliances);
+  state.appliances = [];
 
   refs.panelCount.value = String(state.panelCount);
   refs.panelOutput.value = String(state.panelOutput);
