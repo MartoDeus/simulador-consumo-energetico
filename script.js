@@ -2,7 +2,7 @@ const initialAppliances = [];
 
 const state = {
   period: "day",
-  panelCount: 6,
+  panelCount: 0,
   panelOutput: 450,
   batteryCapacities: [],
   dayHours: 8,
@@ -47,6 +47,7 @@ const refs = {
   batteryReserveText: document.querySelector("#batteryReserveText"),
   coverageBar: document.querySelector("#coverageBar"),
   batteryReserveBar: document.querySelector("#batteryReserveBar"),
+  alertBanner: document.querySelector(".alert-banner"),
   statusHeadline: document.querySelector("#statusHeadline"),
   headlineSupport: document.querySelector("#headlineSupport"),
   statusList: document.querySelector("#statusList"),
@@ -231,11 +232,13 @@ function calculateCurrentScenario(overview) {
     return {
       consumption: overview.dayLoad.consumption,
       generation: overview.solarNetDay,
+      availableEnergy: overview.solarNetDay,
       totalStorage: overview.storageCapacity,
       wasted: overview.wastedDay,
       supplied: overview.daySupplied,
       deficit: overview.dayDeficit,
       coverage,
+      energyRatio: overview.dayLoad.consumption === 0 ? 100 : (overview.solarNetDay / overview.dayLoad.consumption) * 100,
       reserveRatio
     };
   }
@@ -245,11 +248,13 @@ function calculateCurrentScenario(overview) {
   return {
     consumption: overview.nightLoad.consumption,
     generation: 0,
+    availableEnergy: overview.storableSurplus,
     totalStorage: overview.storageCapacity,
     wasted: Math.max(overview.storableSurplus - overview.nightSupplied, 0),
     supplied: overview.nightSupplied,
     deficit: overview.nightDeficit,
     coverage,
+    energyRatio: overview.nightLoad.consumption === 0 ? 100 : (overview.storableSurplus / overview.nightLoad.consumption) * 100,
     reserveRatio
   };
 }
@@ -313,6 +318,18 @@ function getStatusMessages(overview, currentScenario) {
     messages,
     tips: tips.slice(0, 4)
   };
+}
+
+function getScenarioStatus(currentScenario) {
+  if (currentScenario.deficit > 0) {
+    return "danger";
+  }
+
+  if (currentScenario.consumption > 0 && currentScenario.energyRatio < 115) {
+    return "tight";
+  }
+
+  return "ok";
 }
 
 function renderAppliances() {
@@ -438,7 +455,12 @@ function updateReadouts(overview, currentScenario) {
 
 function updateNarrative(overview, currentScenario) {
   const { headline, messages, tips } = getStatusMessages(overview, currentScenario);
-  refs.statusHeadline.textContent = headline;
+  const scenarioStatus = getScenarioStatus(currentScenario);
+  refs.statusHeadline.textContent = scenarioStatus === "tight"
+    ? "Energia muy justa para el escenario actual."
+    : headline;
+  refs.alertBanner.classList.remove("status-ok", "status-tight", "status-danger");
+  refs.alertBanner.classList.add(`status-${scenarioStatus}`);
   refs.statusList.innerHTML = "";
   refs.tipsList.innerHTML = "";
 
@@ -615,7 +637,7 @@ if (refs.addBatteryBtn) {
 
 refs.resetScene.addEventListener("click", () => {
   state.period = "day";
-  state.panelCount = 6;
+  state.panelCount = 0;
   state.panelOutput = 450;
   state.batteryCapacities = [];
   state.dayHours = 8;
