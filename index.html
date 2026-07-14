@@ -102,6 +102,10 @@
             <div class="panel-title-row">
               <h2>Paneles solares</h2>
             </div>
+            <label class="panel-spec-control">
+              Potencia del panel comprado (W)
+              <input id="panelOutput" type="number" min="1" step="10" value="450" inputmode="numeric" placeholder="Ej. 550">
+            </label>
             <label>
               Cantidad de paneles
               <div class="stepper-row">
@@ -119,16 +123,12 @@
               Eficiencia del sistema
               <input id="systemLoss" type="range" min="0" max="40" step="1" value="12">
             </label>
-            <div class="efficiency-row panel-advanced-control">
+            <div class="efficiency-row">
               <span id="lossValue">12 % de perdidas</span>
             </div>
-            <label class="panel-advanced-control">
-              1 panel produce (W)
-              <input id="panelOutput" type="number" min="0" step="10" value="450">
-            </label>
-            <div class="panel-note panel-advanced-control">
+            <div class="panel-note">
               <strong id="panelPowerLabel">450 W c/u</strong>
-              <span>en condiciones optimas</span>
+              <span>potencia nominal ingresada</span>
             </div>
           </section>
 

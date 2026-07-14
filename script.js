@@ -77,6 +77,13 @@ function formatEnergy(wh) {
   return `${Math.round(wh)} Wh`;
 }
 
+function formatPower(watts) {
+  if (watts >= 1000) {
+    return `${(watts / 1000).toFixed(2)} kW`;
+  }
+  return `${Math.round(watts)} W`;
+}
+
 function formatHours(hours) {
   return `${hours.toFixed(1)} h`;
 }
@@ -418,7 +425,7 @@ function renderBatteries() {
 function updateReadouts(overview, currentScenario) {
   refs.panelCountValue.textContent = pluralize(state.panelCount, "panel", "paneles");
   refs.panelGeneratedLabel.textContent = formatEnergy(overview.solarNetDay);
-  refs.panelPowerLabel.textContent = `${state.panelOutput} W c/u`;
+  refs.panelPowerLabel.textContent = `${formatPower(state.panelOutput)} c/u · ${formatPower(state.panelCount * state.panelOutput)} instalados`;
   refs.batteryCountValue.textContent = pluralize(getBatteryCount(), "bateria", "baterias");
   refs.batteryCapacityLabel.textContent = getBatteryCount() === 0
     ? "Sin baterias"
@@ -547,11 +554,11 @@ function update() {
 }
 
 function syncStateFromInputs() {
-  state.panelCount = Number(refs.panelCount.value);
-  state.panelOutput = Number(refs.panelOutput.value);
-  state.dayHours = Number(refs.dayHours.value);
-  state.nightHours = Number(refs.nightHours.value);
-  state.systemLoss = Number(refs.systemLoss.value);
+  state.panelCount = Math.max(0, Number(refs.panelCount.value) || 0);
+  state.panelOutput = Math.max(1, Number(refs.panelOutput.value) || 1);
+  state.dayHours = Math.max(1, Number(refs.dayHours.value) || 1);
+  state.nightHours = Math.max(1, Number(refs.nightHours.value) || 1);
+  state.systemLoss = clamp(Number(refs.systemLoss.value) || 0, 0, 40);
 }
 
 [
