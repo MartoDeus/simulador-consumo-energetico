@@ -362,6 +362,11 @@ input[type="range"] {
   padding: 13px 14px;
 }
 
+.add-battery-top {
+  width: 100%;
+  margin: 12px 0 0;
+}
+
 .appliance-list {
   display: grid;
   gap: 8px;
@@ -1269,15 +1274,7 @@ body[data-theme="night"] .moon {
 }
 
 .night-card::after {
-  content: "";
-  position: absolute;
-  right: 32px;
-  top: 20px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, white, #dde7ff);
-  box-shadow: 0 0 16px rgba(255, 255, 255, 0.7);
+  display: none;
 }
 
 .night-card p {
